@@ -40,7 +40,12 @@ distribution.
 #   include <cstdlib>
 #   include <cstring>
 #endif
+
+#if defined(_MSC_VER) && (_MSC_VER < 1200)
+
+#else
 #include <stdint.h>
+#endif
 
 /*
    TODO: intern strings instead of allocation.
@@ -80,7 +85,7 @@ distribution.
 
 
 #if defined(DEBUG)
-#   if defined(_MSC_VER)
+#   if defined(_MSC_VER) && (_MSC_VER >= 1400)
 #       // "(void)0," is for suppressing C4127 warning in "assert(false)", "assert(true)" and the like
 #       define TIXMLASSERT( x )           if ( !((void)0,(x))) { __debugbreak(); }
 #   elif defined (ANDROID_NDK)

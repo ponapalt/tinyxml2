@@ -63,7 +63,7 @@ distribution.
 	#define TIXML_SNPRINTF	_snprintf
 	#define TIXML_VSNPRINTF _vsnprintf
 	#define TIXML_SSCANF	sscanf
-	#if (_MSC_VER < 1400 ) && (!defined WINCE)
+	#if (_MSC_VER < 1400 ) && (_MSC_VER > 1200) && (!defined WINCE)
 		// Microsoft Visual Studio 2003 and not WinCE.
 		#define TIXML_VSCPRINTF   _vscprintf // VS2003's C runtime has this, but VC6 C runtime or WinCE SDK doesn't have.
 	#else
@@ -564,7 +564,7 @@ void XMLUtil::ToStr( double v, char* buffer, int bufferSize )
 void XMLUtil::ToStr(int64_t v, char* buffer, int bufferSize)
 {
 	// horrible syntax trick to make the compiler happy about %lld
-	TIXML_SNPRINTF(buffer, bufferSize, "%lld", (long long)v);
+	TIXML_SNPRINTF(buffer, bufferSize, "%lld", (int64_t)v);
 }
 
 
@@ -623,7 +623,7 @@ bool XMLUtil::ToDouble( const char* str, double* value )
 
 bool XMLUtil::ToInt64(const char* str, int64_t* value)
 {
-	long long v = 0;	// horrible syntax trick to make the compiler happy about %lld
+	int64_t v = 0;	// horrible syntax trick to make the compiler happy about %lld
 	if (TIXML_SSCANF(str, "%lld", &v) == 1) {
 		*value = (int64_t)v;
 		return true;
@@ -2282,11 +2282,12 @@ XMLPrinter::XMLPrinter( FILE* file, bool compact, int depth ) :
     _processEntities( true ),
     _compactMode( compact )
 {
-    for( int i=0; i<ENTITY_RANGE; ++i ) {
+	int i;
+    for( i=0; i<ENTITY_RANGE; ++i ) {
         _entityFlag[i] = false;
         _restrictedEntityFlag[i] = false;
     }
-    for( int i=0; i<NUM_ENTITIES; ++i ) {
+    for( i=0; i<NUM_ENTITIES; ++i ) {
         const char entityValue = entities[i].value;
         TIXMLASSERT( ((unsigned char)entityValue) < ENTITY_RANGE );
         _entityFlag[ (unsigned char)entityValue ] = true;
