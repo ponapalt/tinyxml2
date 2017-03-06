@@ -1836,9 +1836,19 @@ private:
 
     void Parse();
 
-    template<class NodeType, int PoolElementSize>
-    NodeType* CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool );
+    template<class NodeType>
+    NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
+	{
+		//TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
+		TIXMLASSERT( sizeof( NodeType ) == pool.ItemSize() );
+		NodeType* returnNode = new (pool.Alloc()) NodeType( this );
+		TIXMLASSERT( returnNode );
+		returnNode->_memPool = &pool;
+		return returnNode;
+	}
 };
+
+/*
 
 template<class NodeType, int PoolElementSize>
 inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool )
@@ -1850,6 +1860,8 @@ inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& poo
     returnNode->_memPool = &pool;
     return returnNode;
 }
+
+*/
 
 /**
 	A XMLHandle is a class that wraps a node pointer with null checks; this is

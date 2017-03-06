@@ -648,6 +648,13 @@ bool XMLUtil::ToInt64(const char* str, int64_t* value)
 }
 
 
+static XMLDeclaration* pDummyXMLDeclaration = NULL;
+static XMLComment* pDummyXMLComment = NULL;
+static XMLText* pDummyXMLText = NULL;
+static XMLUnknown* pDummyXMLUnknown = NULL;
+static XMLElement* pDummyXMLElement = NULL;
+
+
 char* XMLDocument::Identify( char* p, XMLNode** node )
 {
     TIXMLASSERT( node );
@@ -678,34 +685,34 @@ char* XMLDocument::Identify( char* p, XMLNode** node )
     TIXMLASSERT( sizeof( XMLComment ) == sizeof( XMLDeclaration ) );	// use same memory pool
     XMLNode* returnNode = 0;
     if ( XMLUtil::StringEqual( p, xmlHeader, xmlHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLDeclaration>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLDeclaration );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += xmlHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, commentHeader, commentHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLComment>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLComment );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += commentHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, cdataHeader, cdataHeaderLen ) ) {
-        XMLText* text = CreateUnlinkedNode<XMLText>( _textPool );
+        XMLText* text = CreateUnlinkedNode( _textPool , pDummyXMLText );
         returnNode = text;
         returnNode->_parseLineNum = _parseCurLineNum;
         p += cdataHeaderLen;
         text->SetCData( true );
     }
     else if ( XMLUtil::StringEqual( p, dtdHeader, dtdHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLUnknown>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLUnknown );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += dtdHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, elementHeader, elementHeaderLen ) ) {
-        returnNode =  CreateUnlinkedNode<XMLElement>( _elementPool );
+        returnNode =  CreateUnlinkedNode( _elementPool , pDummyXMLElement );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += elementHeaderLen;
     }
     else {
-        returnNode = CreateUnlinkedNode<XMLText>( _textPool );
+        returnNode = CreateUnlinkedNode( _textPool , pDummyXMLText );
         returnNode->_parseLineNum = _parseCurLineNum; // Report line of first non-whitespace character
         p = start;	// Back it up, all the text counts.
         _parseCurLineNum = startLine;
@@ -2009,7 +2016,7 @@ void XMLDocument::Clear()
 
 XMLElement* XMLDocument::NewElement( const char* name )
 {
-    XMLElement* ele = CreateUnlinkedNode<XMLElement>( _elementPool );
+    XMLElement* ele = CreateUnlinkedNode( _elementPool , pDummyXMLElement );
     ele->SetName( name );
     return ele;
 }
@@ -2017,7 +2024,7 @@ XMLElement* XMLDocument::NewElement( const char* name )
 
 XMLComment* XMLDocument::NewComment( const char* str )
 {
-    XMLComment* comment = CreateUnlinkedNode<XMLComment>( _commentPool );
+    XMLComment* comment = CreateUnlinkedNode( _commentPool , pDummyXMLComment );
     comment->SetValue( str );
     return comment;
 }
@@ -2025,7 +2032,7 @@ XMLComment* XMLDocument::NewComment( const char* str )
 
 XMLText* XMLDocument::NewText( const char* str )
 {
-    XMLText* text = CreateUnlinkedNode<XMLText>( _textPool );
+    XMLText* text = CreateUnlinkedNode( _textPool , pDummyXMLText );
     text->SetValue( str );
     return text;
 }
@@ -2033,7 +2040,7 @@ XMLText* XMLDocument::NewText( const char* str )
 
 XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 {
-    XMLDeclaration* dec = CreateUnlinkedNode<XMLDeclaration>( _commentPool );
+    XMLDeclaration* dec = CreateUnlinkedNode( _commentPool , pDummyXMLDeclaration );
     dec->SetValue( str ? str : "xml version=\"1.0\" encoding=\"UTF-8\"" );
     return dec;
 }
@@ -2041,7 +2048,7 @@ XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 
 XMLUnknown* XMLDocument::NewUnknown( const char* str )
 {
-    XMLUnknown* unk = CreateUnlinkedNode<XMLUnknown>( _commentPool );
+    XMLUnknown* unk = CreateUnlinkedNode( _commentPool , pDummyXMLUnknown );
     unk->SetValue( str );
     return unk;
 }
