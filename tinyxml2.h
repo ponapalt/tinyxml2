@@ -936,9 +936,6 @@ private:
 
     XMLNode( const XMLNode& );	// not supported
     XMLNode& operator=( const XMLNode& );	// not supported
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -990,9 +987,6 @@ private:
 
     XMLText( const XMLText& );	// not supported
     XMLText& operator=( const XMLText& );	// not supported
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -1022,9 +1016,6 @@ protected:
 private:
     XMLComment( const XMLComment& );	// not supported
     XMLComment& operator=( const XMLComment& );	// not supported
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -1064,9 +1055,6 @@ protected:
 private:
     XMLDeclaration( const XMLDeclaration& );	// not supported
     XMLDeclaration& operator=( const XMLDeclaration& );	// not supported
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -1102,9 +1090,6 @@ protected:
 private:
     XMLUnknown( const XMLUnknown& );	// not supported
     XMLUnknown& operator=( const XMLUnknown& );	// not supported
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -1614,9 +1599,6 @@ private:
     // because the list needs to be scanned for dupes before adding
     // a new attribute.
     XMLAttribute* _rootAttribute;
-
-	template<class NodeType> friend
-	NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis );
 };
 
 
@@ -1853,14 +1835,17 @@ private:
 	static const char* _errorNames[XML_ERROR_COUNT];
 
     void Parse();
+
+    template<class NodeType, int PoolElementSize>
+    NodeType* CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool );
 };
 
-template<class NodeType>
-NodeType* /*XMLDocument::*/CreateUnlinkedNode( MemPoolT< sizeof(NodeType) >& pool , XMLDocument *pThis )
+template<class NodeType, int PoolElementSize>
+inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool )
 {
-    TIXMLASSERT( sizeof( NodeType ) == sizeof(NodeType) );
+    TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
     TIXMLASSERT( sizeof( NodeType ) == pool.ItemSize() );
-    NodeType* returnNode = new (pool.Alloc()) NodeType( pThis );
+    NodeType* returnNode = new (pool.Alloc()) NodeType( this );
     TIXMLASSERT( returnNode );
     returnNode->_memPool = &pool;
     return returnNode;
