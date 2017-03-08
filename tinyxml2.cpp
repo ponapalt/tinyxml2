@@ -1845,6 +1845,7 @@ XMLAttribute* XMLElement::CreateAttribute()
 {
     TIXMLASSERT( sizeof( XMLAttribute ) == _document->_attributePool.ItemSize() );
     XMLAttribute* attrib = new (_document->_attributePool.Alloc() ) XMLAttribute();
+    TIXMLASSERT( attrib );
     attrib->_memPool = &_document->_attributePool;
     attrib->_memPool->SetTracked();
     return attrib;
@@ -1963,12 +1964,12 @@ const char* XMLDocument::_errorNames[XML_ERROR_COUNT] = {
 };
 
 
-XMLDocument::XMLDocument( bool processEntities, Whitespace whitespace ) :
+XMLDocument::XMLDocument( bool processEntities, Whitespace whitespaceMode ) :
     XMLNode( 0 ),
     _writeBOM( false ),
     _processEntities( processEntities ),
     _errorID(XML_SUCCESS),
-    _whitespace( whitespace ),
+    _whitespaceMode( whitespaceMode ),
     _errorLineNum( 0 ),
     _charBuffer( 0 ),
     _parseCurLineNum( 0 )

@@ -1618,7 +1618,7 @@ class TINYXML2_LIB XMLDocument : public XMLNode
     friend class XMLElement;
 public:
     /// constructor
-    XMLDocument( bool processEntities = true, Whitespace = PRESERVE_WHITESPACE );
+    XMLDocument( bool processEntities = true, Whitespace whitespaceMode = PRESERVE_WHITESPACE );
     ~XMLDocument();
 
     virtual XMLDocument* ToDocument()				{
@@ -1682,7 +1682,7 @@ public:
         return _processEntities;
     }
     Whitespace WhitespaceMode() const	{
-        return _whitespace;
+        return _whitespaceMode;
     }
 
     /**
@@ -1820,7 +1820,7 @@ private:
     bool			_writeBOM;
     bool			_processEntities;
     XMLError		_errorID;
-    Whitespace		_whitespace;
+    Whitespace		_whitespaceMode;
     mutable StrPair	_errorStr1;
     mutable StrPair	_errorStr2;
     int             _errorLineNum;
