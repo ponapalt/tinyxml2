@@ -40,12 +40,7 @@ distribution.
 #   include <cstdlib>
 #   include <cstring>
 #endif
-
-#if defined(_MSC_VER) && (_MSC_VER < 1200)
-
-#else
 #include <stdint.h>
-#endif
 
 /*
    TODO: intern strings instead of allocation.
