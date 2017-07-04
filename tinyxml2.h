@@ -53,7 +53,7 @@ distribution.
         AStyle.exe --style=1tbs --indent-switches --break-closing-brackets --indent-preprocessor tinyxml2.cpp tinyxml2.h
 */
 
-#if defined( _DEBUG ) || defined( DEBUG ) || defined (__DEBUG__)
+#if defined( _DEBUG ) || defined (__DEBUG__)
 #   ifndef DEBUG
 #       define DEBUG
 #   endif
@@ -98,7 +98,7 @@ distribution.
 /* Versioning, past 1.0.14:
 	http://semver.org/
 */
-static const int TIXML2_MAJOR_VERSION = 4;
+static const int TIXML2_MAJOR_VERSION = 5;
 static const int TIXML2_MINOR_VERSION = 0;
 static const int TIXML2_PATCH_VERSION = 1;
 
@@ -263,6 +263,13 @@ public:
         TIXMLASSERT( _allocated >= INITIAL_SIZE );
         return _allocated;
     }
+
+	void SwapRemove(int i) {
+		TIXMLASSERT(i >= 0 && i < _size);
+		TIXMLASSERT(_size > 0);
+		_mem[i] = _mem[_size - 1];
+		--_size;
+	}
 
     const T* Mem() const				{
         TIXMLASSERT( _mem );
@@ -506,10 +513,10 @@ enum XMLError {
     XML_ERROR_FILE_NOT_FOUND,
     XML_ERROR_FILE_COULD_NOT_BE_OPENED,
     XML_ERROR_FILE_READ_ERROR,
-    XML_ERROR_ELEMENT_MISMATCH,
+    UNUSED_XML_ERROR_ELEMENT_MISMATCH,	// remove at next major version
     XML_ERROR_PARSING_ELEMENT,
     XML_ERROR_PARSING_ATTRIBUTE,
-    XML_ERROR_IDENTIFYING_TAG,
+    UNUSED_XML_ERROR_IDENTIFYING_TAG,	// remove at next major version
     XML_ERROR_PARSING_TEXT,
     XML_ERROR_PARSING_CDATA,
     XML_ERROR_PARSING_COMMENT,
@@ -857,6 +864,21 @@ public:
     	Note: if called on a XMLDocument, this will return null.
     */
     virtual XMLNode* ShallowClone( XMLDocument* document ) const = 0;
+
+	/**
+		Make a copy of this node and all its children.
+
+		If the 'target' is null, then the nodes will
+		be allocated in the current document. If 'target' 
+        is specified, the memory will be allocated is the 
+        specified XMLDocument.
+
+		NOTE: This is probably not the correct tool to 
+		copy a document, since XMLDocuments can have multiple
+		top level XMLNodes. You probably want to use
+        XMLDocument::DeepCopy()
+	*/
+	XMLNode* DeepClone( XMLDocument* target ) const;
 
     /**
     	Test if 2 nodes are the same, but don't test children.
@@ -1781,13 +1803,11 @@ public:
     static const char* ErrorIDToName(XMLError errorID);
 
     /// Return a possibly helpful diagnostic location or string.
-    const char* GetErrorStr1() const {
-        return _errorStr1.GetStr();
-    }
+	const char* GetErrorStr1() const;
+
     /// Return a possibly helpful secondary diagnostic location or string.
-    const char* GetErrorStr2() const {
-        return _errorStr2.GetStr();
-    }
+	const char* GetErrorStr2() const;
+
     /// Return the line where the error occured, or zero if unknown.
     int GetErrorLineNum() const
     {
@@ -1799,8 +1819,20 @@ public:
     /// Clear the document, resetting it to the initial state.
     void Clear();
 
-    // internal
+	/**
+		Copies this document to a target document.
+		The target will be completely cleared before the copy.
+		If you want to copy a sub-tree, see XMLNode::DeepClone().
+
+		NOTE: that the 'target' must be non-null.
+	*/
+	void DeepCopy(XMLDocument* target);
+
+	// internal
     char* Identify( char* p, XMLNode** node );
+
+	// internal
+	void MarkInUse(XMLNode*);
 
     virtual XMLNode* ShallowClone( XMLDocument* /*document*/ ) const	{
         return 0;
@@ -1822,6 +1854,13 @@ private:
     int             _errorLineNum;
     char*			_charBuffer;
     int				_parseCurLineNum;
+	// Memory tracking does add some overhead.
+	// However, the code assumes that you don't
+	// have a bunch of unlinked nodes around.
+	// Therefore it takes less memory to track
+	// in the document vs. a linked list in the XMLNode,
+	// and the performance is the same.
+	DynArray<XMLNode*, 10> _unlinked;
 
     MemPoolT< sizeof(XMLElement) >	 _elementPool;
     MemPoolT< sizeof(XMLAttribute) > _attributePool;
@@ -1854,6 +1893,8 @@ inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& poo
     NodeType* returnNode = new (pool.Alloc()) NodeType( this );
     TIXMLASSERT( returnNode );
     returnNode->_memPool = &pool;
+
+	_unlinked.Push(returnNode);
     return returnNode;
 }
 
@@ -2189,6 +2230,7 @@ public:
     void ClearBuffer() {
         _buffer.Clear();
         _buffer.Push(0);
+		_firstElement = true;
     }
 
 protected:
