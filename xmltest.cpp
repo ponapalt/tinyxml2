@@ -1756,6 +1756,24 @@ int main( int argc, const char ** argv )
         doc.DeleteNode(pRoot);
     }
 
+    {
+        XMLDocument doc;
+        XMLElement* root = doc.NewElement( "Root" );
+        XMLTest( "Node document before insertion", true, &doc == root->GetDocument() );
+        doc.InsertEndChild( root );
+        XMLTest( "Node document after insertion", true, &doc == root->GetDocument() );
+    }
+
+    {
+        // If this doesn't assert in DEBUG, all is well.
+        XMLDocument doc;
+        XMLElement* unlinkedRoot = doc.NewElement( "Root" );
+        XMLElement* linkedRoot = doc.NewElement( "Root" );
+        doc.InsertFirstChild( linkedRoot );
+        unlinkedRoot->GetDocument()->DeleteNode( linkedRoot );
+        unlinkedRoot->GetDocument()->DeleteNode( unlinkedRoot );
+    }
+
 	{
 		// Should not assert in DEBUG
 		XMLPrinter printer;
@@ -2112,13 +2130,15 @@ int main( int argc, const char ** argv )
 #endif
 
 #if defined( _MSC_VER )
-		printf("\nParsing %s of dream.xml: %.3f milli-seconds\n", note, 1000.0 * (double)(end - start) / ((double)freq * (double)COUNT));
+		const double duration = 1000.0 * (double)(end - start) / ((double)freq * (double)COUNT);
 #else
-		printf("\nParsing %s of dream.xml: %.3f milli-seconds\n", note, (double)(cend - cstart) / (double)COUNT);
+		const double duration = (double)(cend - cstart) / (double)COUNT;
 #endif
+		printf("\nParsing dream.xml (%s): %.3f milli-seconds\n", note, duration);
 	}
 
-	#if defined( _MSC_VER ) &&  defined( DEBUG )
+#if defined( _MSC_VER ) &&  defined( DEBUG )
+	{
 		_CrtMemCheckpoint( &endMemState );
 
 		_CrtMemState diffMemState;
@@ -2129,7 +2149,8 @@ int main( int argc, const char ** argv )
 			int leaksBeforeExit = _CrtDumpMemoryLeaks();
 			XMLTest( "No leaks before exit?", FALSE, leaksBeforeExit );
 		}
-	#endif
+	}
+#endif
 
 	printf ("\nPass %d, Fail %d\n", gPass, gFail);
 
