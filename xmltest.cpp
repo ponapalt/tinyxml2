@@ -454,8 +454,8 @@ int main( int argc, const char ** argv )
 		XMLTest( "Programmatic DOM", 2, doc->FirstChildElement()->LastChildElement( "sub" )->IntAttribute( "attrib" ) );
 		XMLTest( "Programmatic DOM", "& Text!",
 				 doc->FirstChildElement()->LastChildElement( "sub" )->FirstChild()->ToText()->Value() );
-		XMLTest("User data", true, &dummyValue == comment->GetUserData(), false);
-		XMLTest("User data", dummyInitialValue, dummyValue, false);
+		XMLTest("User data - pointer", true, &dummyValue == comment->GetUserData(), false);
+		XMLTest("User data - value behind pointer", dummyInitialValue, dummyValue, false);
 
 		// And now deletion:
 		element->DeleteChild( sub[2] );
@@ -1548,6 +1548,16 @@ int main( int argc, const char ** argv )
         XMLTest( "Document has something to Clear()", false, doc.NoChildren() );
         doc.Clear();
         XMLTest( "Document Clear()'s", true, doc.NoChildren() );
+    }
+
+    {
+        XMLDocument doc;
+        XMLTest( "No error initially", false, doc.Error() );
+        XMLError error = doc.Parse( "This is not XML" );
+        XMLTest( "Error after invalid XML", true, doc.Error() );
+        XMLTest( "Error after invalid XML", error, doc.ErrorID() );
+        doc.Clear();
+        XMLTest( "No error after Clear()", false, doc.Error() );
     }
     
 	// ----------- Whitespace ------------
