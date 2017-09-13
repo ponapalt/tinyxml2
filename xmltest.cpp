@@ -1909,7 +1909,8 @@ int main( int argc, const char ** argv )
 
     {
 	    // No matter - before or after successfully parsing a text -
-	    // calling XMLDocument::Value() causes an assert in debug.
+	    // calling XMLDocument::Value() used to cause an assert in debug.
+	    // Null must be retured.
 	    const char* validXml = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>"
 	                           "<first />"
 	                           "<second />";
@@ -1924,7 +1925,9 @@ int main( int argc, const char ** argv )
 	{
 		XMLDocument doc;
 		for( int i = 0; i < XML_ERROR_COUNT; i++ ) {
-			doc.SetError( (XMLError)i, 0, 0, 0 );
+			const XMLError error = static_cast<XMLError>(i);
+			doc.SetError( error, 0, 0, 0 );
+			XMLTest( "ErrorID() after SetError()", error, doc.ErrorID() );
 			doc.ErrorName();
 		}
 	}
