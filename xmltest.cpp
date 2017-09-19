@@ -386,6 +386,34 @@ int main( int argc, const char ** argv )
 	}
 
 	{
+		// This test is pre-test for the next one
+		// (where Element1 is inserted "after itself".
+		// This code didn't use to crash.
+		XMLDocument doc;
+		XMLElement* element1 = doc.NewElement("Element1");
+		XMLElement* element2 = doc.NewElement("Element2");
+		doc.InsertEndChild(element1);
+		doc.InsertEndChild(element2);
+		doc.InsertAfterChild(element2, element2);
+		doc.InsertAfterChild(element2, element2);
+	}
+
+	{
+		XMLDocument doc;
+		XMLElement* element1 = doc.NewElement("Element1");
+		XMLElement* element2 = doc.NewElement("Element2");
+		doc.InsertEndChild(element1);
+		doc.InsertEndChild(element2);
+
+		// This insertion "after itself"
+		// used to cause invalid memory access and crash
+		doc.InsertAfterChild(element1, element1);
+		doc.InsertAfterChild(element1, element1);
+		doc.InsertAfterChild(element2, element2);
+		doc.InsertAfterChild(element2, element2);
+	}
+
+	{
 		static const char* test = "<element>Text before.</element>";
 		XMLDocument doc;
 		doc.Parse( test );
@@ -1928,7 +1956,9 @@ int main( int argc, const char ** argv )
 			const XMLError error = static_cast<XMLError>(i);
 			doc.SetError( error, 0, 0, 0 );
 			XMLTest( "ErrorID() after SetError()", error, doc.ErrorID() );
-			doc.ErrorName();
+			const char* name = doc.ErrorName();
+			XMLTest( "ErrorName() after SetError()", true, name != 0 );
+			XMLTest( "ErrorName() after SetError()", true, strlen(name) > 0 );
 		}
 	}
 
@@ -1939,17 +1969,18 @@ int main( int argc, const char ** argv )
 		//
 		// Previously (buggy):
 		//		The memory would be free'd when the XMLDocument is
-		//      destructed. But the destructor wasn't called, so that
-		//      memory allocated by the XMLElement would not be free'd.
-		//      In practice this meant strings allocated by the XMLElement
-		//      would leak. An edge case, but annoying.
+		//      destructed. But the XMLElement destructor wasn't called, so
+		//      memory allocated for the XMLElement text would not be free'd.
+		//      In practice this meant strings allocated for the XMLElement
+		//      text would be leaked. An edge case, but annoying.
 		// Now:
-		//      The destructor is called. But the list of unlinked nodes
-		//      has to be tracked. This has a minor performance impact
-		//   	that can become significant if you have a lot. (But why
-		//      would you do that?)
-		// The only way to see this bug is in a leak tracker. This
-		// is compiled in by default on Windows Debug.
+		//      The XMLElement destructor is called. But the unlinked nodes
+		//      have to be tracked using a list. This has a minor performance
+		//      impact that can become significant if you have a lot of
+		//      unlinked nodes. (But why would you do that?)
+		// The only way to see this bug was in a Visual C++ runtime debug heap
+		// leak tracker. This is compiled in by default on Windows Debug and
+		// enabled with _CRTDBG_LEAK_CHECK_DF parameter passed to _CrtSetDbgFlag().
 		{
 			XMLDocument doc;
 			doc.NewElement("LEAK 1");
