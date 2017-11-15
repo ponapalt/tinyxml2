@@ -1880,15 +1880,19 @@ private:
     NodeType* CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool );
 	*/
 
-	void SetError( XMLError error, int lineNum, const char* format, ... );    NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
+	void SetError( XMLError error, int lineNum, const char* format, ... );
+	
+	NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
 	{
 		//TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
 		TIXMLASSERT( sizeof( NodeType ) == pool.ItemSize() );
 		NodeType* returnNode = new (pool.Alloc()) NodeType( this );
 		TIXMLASSERT( returnNode );
 		returnNode->_memPool = &pool;
+	
+		_unlinked.Push(returnNode);
 		return returnNode;
-	}};
+	};
 
 /*
 
