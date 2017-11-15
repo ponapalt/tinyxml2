@@ -1882,6 +1882,7 @@ private:
 
 	void SetError( XMLError error, int lineNum, const char* format, ... );
 	
+	template<class NodeType>
 	NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
 	{
 		//TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
@@ -1892,7 +1893,8 @@ private:
 	
 		_unlinked.Push(returnNode);
 		return returnNode;
-	};
+	}
+};
 
 /*
 
