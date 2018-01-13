@@ -99,8 +99,12 @@ distribution.
 	http://semver.org/
 */
 static const int TIXML2_MAJOR_VERSION = 6;
-static const int TIXML2_MINOR_VERSION = 0;
+static const int TIXML2_MINOR_VERSION = 1;
 static const int TIXML2_PATCH_VERSION = 0;
+
+#define TINYXML2_MAJOR_VERSION 6
+#define TINYXML2_MINOR_VERSION 1
+#define TINYXML2_PATCH_VERSION 0
 
 namespace tinyxml2
 {
@@ -1360,6 +1364,17 @@ public:
         }
         return a->QueryFloatValue( value );
     }
+
+	/// See QueryIntAttribute()
+	XMLError QueryStringAttribute(const char* name, const char** value) const {
+		const XMLAttribute* a = FindAttribute(name);
+		if (!a) {
+			return XML_NO_ATTRIBUTE;
+		}
+		*value = a->Value();
+		return XML_SUCCESS;
+	}
+
 
 	
     /** Given an attribute name, QueryAttribute() returns
