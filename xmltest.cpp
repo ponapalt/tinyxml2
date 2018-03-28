@@ -535,7 +535,7 @@ int main( int argc, const char ** argv )
 
 		XMLTest( "Dream", "xml version=\"1.0\"",
 						  doc.FirstChild()->ToDeclaration()->Value() );
-		XMLTest( "Dream", true, doc.FirstChild()->NextSibling()->ToUnknown() ? true : false );
+		XMLTest( "Dream", true, doc.FirstChild()->NextSibling()->ToUnknown() != 0 );
 		XMLTest( "Dream", "DOCTYPE PLAY SYSTEM \"play.dtd\"",
 						  doc.FirstChild()->NextSibling()->ToUnknown()->Value() );
 		XMLTest( "Dream", "And Robin shall restore amends.",
@@ -548,7 +548,7 @@ int main( int argc, const char ** argv )
 		XMLTest( "Load dreamout.xml", false, doc2.Error() );
 		XMLTest( "Dream-out", "xml version=\"1.0\"",
 						  doc2.FirstChild()->ToDeclaration()->Value() );
-		XMLTest( "Dream-out", true, doc2.FirstChild()->NextSibling()->ToUnknown() ? true : false );
+		XMLTest( "Dream-out", true, doc2.FirstChild()->NextSibling()->ToUnknown() != 0 );
 		XMLTest( "Dream-out", "DOCTYPE PLAY SYSTEM \"play.dtd\"",
 						  doc2.FirstChild()->NextSibling()->ToUnknown()->Value() );
 		XMLTest( "Dream-out", "And Robin shall restore amends.",
@@ -1470,28 +1470,31 @@ int main( int argc, const char ** argv )
 		static const char* xml = "<element attrib='bar'><sub>Text</sub></element>";
 		XMLDocument doc;
 		doc.Parse( xml );
-		XMLTest( "Parse element with attribute and nested element round 1", false, doc.Error() );
+		XMLTest( "Handle, parse element with attribute and nested element", false, doc.Error() );
 
-		XMLElement* ele = XMLHandle( doc ).FirstChildElement( "element" ).FirstChild().ToElement();
-		XMLTest( "Handle, success, mutable", "sub", ele->Value() );
+		{
+			XMLElement* ele = XMLHandle( doc ).FirstChildElement( "element" ).FirstChild().ToElement();
+			XMLTest( "Handle, non-const, element is found", true, ele != 0 );
+			XMLTest( "Handle, non-const, element name matches", "sub", ele->Value() );
+		}
 
-		XMLHandle docH( doc );
-		ele = docH.FirstChildElement( "none" ).FirstChildElement( "element" ).ToElement();
-		XMLTest( "Handle, dne, mutable", true, ele == 0 );
-	}
+		{
+			XMLHandle docH( doc );
+			XMLElement* ele = docH.FirstChildElement( "noSuchElement" ).FirstChildElement( "element" ).ToElement();
+			XMLTest( "Handle, non-const, element not found", true, ele == 0 );
+		}
 
-	{
-		static const char* xml = "<element attrib='bar'><sub>Text</sub></element>";
-		XMLDocument doc;
-		doc.Parse( xml );
-		XMLTest( "Parse element with attribute and nested element round 2", false, doc.Error() );
-		XMLConstHandle docH( doc );
+		{
+			const XMLElement* ele = XMLConstHandle( doc ).FirstChildElement( "element" ).FirstChild().ToElement();
+			XMLTest( "Handle, const, element is found", true, ele != 0 );
+			XMLTest( "Handle, const, element name matches", "sub", ele->Value() );
+		}
 
-		const XMLElement* ele = docH.FirstChildElement( "element" ).FirstChild().ToElement();
-		XMLTest( "Handle, success, const", "sub", ele->Value() );
-
-		ele = docH.FirstChildElement( "none" ).FirstChildElement( "element" ).ToElement();
-		XMLTest( "Handle, dne, const", true, ele == 0 );
+		{
+			XMLConstHandle docH( doc );
+			const XMLElement* ele = docH.FirstChildElement( "noSuchElement" ).FirstChildElement( "element" ).ToElement();
+			XMLTest( "Handle, const, element not found", true, ele == 0 );
+		}
 	}
 	{
 		// Default Declaration & BOM
@@ -1954,7 +1957,7 @@ int main( int argc, const char ** argv )
 	    doc.Parse(xml1);
 	    XMLTest("Test that the second declaration is allowed", false, doc.Error() );
 	    doc.Parse(xml2);
-	    XMLTest("Test that declaration after a child is not allowed", XML_ERROR_PARSING_DECLARATION, doc.ErrorID() );
+	    XMLTest("Test that declaration after self-closed child is not allowed", XML_ERROR_PARSING_DECLARATION, doc.ErrorID() );
 	    doc.Parse(xml3);
 	    XMLTest("Test that declaration after a child is not allowed", XML_ERROR_PARSING_DECLARATION, doc.ErrorID() );
 	    doc.Parse(xml4);
@@ -1981,8 +1984,14 @@ int main( int argc, const char ** argv )
 		for( int i = 0; i < XML_ERROR_COUNT; i++ ) {
 			const XMLError error = static_cast<XMLError>(i);
 			const char* name = XMLDocument::ErrorIDToName(error);
-			XMLTest( "ErrorName() after ClearError()", true, name != 0 );
-			XMLTest( "ErrorName() after ClearError()", true, strlen(name) > 0 );
+			XMLTest( "ErrorName() not null after ClearError()", true, name != 0 );
+			if( name == 0 ) {
+				// passing null pointer into strlen() is undefined behavior, so
+				// compiler is allowed to optimise away the null test above if it's
+				// as reachable as the strlen() call
+				continue;
+			}
+			XMLTest( "ErrorName() not empty after ClearError()", true, strlen(name) > 0 );
 		}
 	}
 
