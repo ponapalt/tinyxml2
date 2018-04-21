@@ -1922,6 +1922,9 @@ private:
 	private:
 		XMLDocument * _document;
 	};
+
+	friend class DepthTracker;
+
 	void PushDepth();
 	void PopDepth();
 
