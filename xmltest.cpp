@@ -1967,7 +1967,7 @@ int main( int argc, const char ** argv )
     {
 	    // No matter - before or after successfully parsing a text -
 	    // calling XMLDocument::Value() used to cause an assert in debug.
-	    // Null must be retured.
+	    // Null must be returned.
 	    const char* validXml = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>"
 	                           "<first />"
 	                           "<second />";
@@ -2050,6 +2050,18 @@ int main( int argc, const char ** argv )
 			XMLTest("Stack overflow prevented.", XML_ELEMENT_DEPTH_EXCEEDED, doc.ErrorID());
 		}
 	}
+    {
+        const char* TESTS[] = {
+            "./resources/xmltest-5662204197076992.xml",     // Security-level performance issue.
+            0
+        };
+        for (int i = 0; TESTS[i]; ++i) {
+            XMLDocument doc;
+            doc.LoadFile(TESTS[i]);
+            // Need only not crash / lock up.
+            XMLTest("Fuzz attack prevented.", true, true);
+        }
+    }
 	{
 		// Crashing reported via email.
 		const char* xml =
