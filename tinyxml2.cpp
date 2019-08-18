@@ -591,7 +591,7 @@ void XMLUtil::ToStr( int64_t v, char* buffer, int bufferSize )
 void XMLUtil::ToStr( uint64_t v, char* buffer, int bufferSize )
 {
     // horrible syntax trick to make the compiler happy about %llu
-    TIXML_SNPRINTF(buffer, bufferSize, "%llu", (long long)v);
+    TIXML_SNPRINTF(buffer, bufferSize, "%llu", static_cast<uint64_t>(v));
 }
 
 bool XMLUtil::ToInt( const char* str, int* value )
@@ -620,17 +620,21 @@ bool XMLUtil::ToBool( const char* str, bool* value )
     static const char* TRUE[] = { "true", "True", "TRUE", 0 };
     static const char* FALSE[] = { "false", "False", "FALSE", 0 };
 
+    {
     for (int i = 0; TRUE[i]; ++i) {
         if (StringEqual(str, TRUE[i])) {
             *value = true;
             return true;
         }
     }
+    }
+    {
     for (int i = 0; FALSE[i]; ++i) {
         if (StringEqual(str, FALSE[i])) {
             *value = false;
             return true;
         }
+    }
     }
     return false;
 }
@@ -673,7 +677,7 @@ static XMLElement* pDummyXMLElement = NULL;
 
 
 bool XMLUtil::ToUnsigned64(const char* str, uint64_t* value) {
-    unsigned long long v = 0;	// horrible syntax trick to make the compiler happy about %llu
+    uint64_t v = 0;	// horrible syntax trick to make the compiler happy about %llu
     if(TIXML_SSCANF(str, "%llu", &v) == 1) {
         *value = (uint64_t)v;
         return true;
