@@ -2323,22 +2323,22 @@ XMLError XMLDocument::LoadFile( FILE* fp )
 
     TIXML_FSEEK( fp, 0, SEEK_END );
 
-    unsigned long long filelength;
+    unsigned __int64 filelength;
     {
-        const long long fileLengthSigned = TIXML_FTELL( fp );
+        const __int64 fileLengthSigned = TIXML_FTELL( fp );
         TIXML_FSEEK( fp, 0, SEEK_SET );
         if ( fileLengthSigned == -1L ) {
             SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
             return _errorID;
         }
         TIXMLASSERT( fileLengthSigned >= 0 );
-        filelength = static_cast<unsigned long long>(fileLengthSigned);
+        filelength = static_cast<unsigned __int64>(fileLengthSigned);
     }
 
     const size_t maxSizeT = static_cast<size_t>(-1);
-    // We'll do the comparison as an unsigned long long, because that's guaranteed to be at
+    // We'll do the comparison as an unsigned __int64, because that's guaranteed to be at
     // least 8 bytes, even on a 32-bit platform.
-    if ( filelength >= static_cast<unsigned long long>(maxSizeT) ) {
+    if ( filelength >= static_cast<unsigned __int64>(maxSizeT) ) {
         // Cannot handle files which won't fit in buffer together with null terminator
         SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
         return _errorID;
