@@ -684,7 +684,7 @@ bool XMLUtil::ToDouble( const char* str, double* value )
 bool XMLUtil::ToInt64(const char* str, int64_t* value)
 {
     if (IsPrefixHex(str)) {
-        unsigned int64_t v = 0;	// horrible syntax trick to make the compiler happy about %llx
+        uint64_t v = 0;	// horrible syntax trick to make the compiler happy about %llx
         if (TIXML_SSCANF(str, "%llx", &v) == 1) {
             *value = static_cast<int64_t>(v);
             return true;
