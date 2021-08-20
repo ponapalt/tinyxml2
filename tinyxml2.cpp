@@ -63,7 +63,7 @@ distribution.
 	#define TIXML_SNPRINTF	_snprintf
 	#define TIXML_VSNPRINTF _vsnprintf
 	#define TIXML_SSCANF	sscanf
-	#if (_MSC_VER < 1400 ) && (!defined WINCE)
+	#if (_MSC_VER < 1400 ) && (_MSC_VER > 1200) && (!defined WINCE)
 		// Microsoft Visual Studio 2003 and not WinCE.
 		#define TIXML_VSCPRINTF   _vscprintf // VS2003's C runtime has this, but VC6 C runtime or WinCE SDK doesn't have.
 	#else
@@ -591,13 +591,13 @@ void XMLUtil::ToStr( double v, char* buffer, int bufferSize )
 void XMLUtil::ToStr( int64_t v, char* buffer, int bufferSize )
 {
 	// horrible syntax trick to make the compiler happy about %lld
-	TIXML_SNPRINTF(buffer, bufferSize, "%lld", static_cast<long long>(v));
+	TIXML_SNPRINTF(buffer, bufferSize, "%lld", static_cast<int64_t>(v));
 }
 
 void XMLUtil::ToStr( uint64_t v, char* buffer, int bufferSize )
 {
     // horrible syntax trick to make the compiler happy about %llu
-    TIXML_SNPRINTF(buffer, bufferSize, "%llu", static_cast<unsigned long long>(v));
+    TIXML_SNPRINTF(buffer, bufferSize, "%llu", static_cast<uint64_t>(v));
 }
 
 bool XMLUtil::ToInt(const char* str, int* value)
@@ -635,17 +635,21 @@ bool XMLUtil::ToBool( const char* str, bool* value )
     static const char* TRUE_VALS[] = { "true", "True", "TRUE", 0 };
     static const char* FALSE_VALS[] = { "false", "False", "FALSE", 0 };
 
+    {
     for (int i = 0; TRUE_VALS[i]; ++i) {
         if (StringEqual(str, TRUE_VALS[i])) {
             *value = true;
             return true;
         }
     }
+    }
+    {
     for (int i = 0; FALSE_VALS[i]; ++i) {
         if (StringEqual(str, FALSE_VALS[i])) {
             *value = false;
             return true;
         }
+    }
     }
     return false;
 }
@@ -672,14 +676,14 @@ bool XMLUtil::ToDouble( const char* str, double* value )
 bool XMLUtil::ToInt64(const char* str, int64_t* value)
 {
     if (IsPrefixHex(str)) {
-        unsigned long long v = 0;	// horrible syntax trick to make the compiler happy about %llx
+        uint64_t v = 0;	// horrible syntax trick to make the compiler happy about %llx
         if (TIXML_SSCANF(str, "%llx", &v) == 1) {
             *value = static_cast<int64_t>(v);
             return true;
         }
     }
     else {
-        long long v = 0;	// horrible syntax trick to make the compiler happy about %lld
+        int64_t v = 0;	// horrible syntax trick to make the compiler happy about %lld
         if (TIXML_SSCANF(str, "%lld", &v) == 1) {
             *value = static_cast<int64_t>(v);
             return true;
@@ -689,8 +693,15 @@ bool XMLUtil::ToInt64(const char* str, int64_t* value)
 }
 
 
+static XMLDeclaration* pDummyXMLDeclaration = NULL;
+static XMLComment* pDummyXMLComment = NULL;
+static XMLText* pDummyXMLText = NULL;
+static XMLUnknown* pDummyXMLUnknown = NULL;
+static XMLElement* pDummyXMLElement = NULL;
+
+
 bool XMLUtil::ToUnsigned64(const char* str, uint64_t* value) {
-    unsigned long long v = 0;	// horrible syntax trick to make the compiler happy about %llu
+    uint64_t v = 0;	// horrible syntax trick to make the compiler happy about %llu
     if(TIXML_SSCANF(str, IsPrefixHex(str) ? "%llx" : "%llu", &v) == 1) {
         *value = static_cast<uint64_t>(v);
         return true;
@@ -729,44 +740,43 @@ char* XMLDocument::Identify( char* p, XMLNode** node, bool first )
     TIXMLASSERT( sizeof( XMLComment ) == sizeof( XMLDeclaration ) );	// use same memory pool
     XMLNode* returnNode = 0;
     if ( XMLUtil::StringEqual( p, xmlHeader, xmlHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLDeclaration>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLDeclaration );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += xmlHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, commentHeader, commentHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLComment>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLComment );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += commentHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, cdataHeader, cdataHeaderLen ) ) {
-        XMLText* text = CreateUnlinkedNode<XMLText>( _textPool );
+        XMLText* text = CreateUnlinkedNode( _textPool , pDummyXMLText );
         returnNode = text;
         returnNode->_parseLineNum = _parseCurLineNum;
         p += cdataHeaderLen;
         text->SetCData( true );
     }
     else if ( XMLUtil::StringEqual( p, dtdHeader, dtdHeaderLen ) ) {
-        returnNode = CreateUnlinkedNode<XMLUnknown>( _commentPool );
+        returnNode = CreateUnlinkedNode( _commentPool , pDummyXMLUnknown );
         returnNode->_parseLineNum = _parseCurLineNum;
         p += dtdHeaderLen;
     }
     else if ( XMLUtil::StringEqual( p, elementHeader, elementHeaderLen ) ) {
-
         // Preserve whitespace pedantically before closing tag, when it's immediately after opening tag
         if (WhitespaceMode() == PEDANTIC_WHITESPACE && first && p != start && *(p + elementHeaderLen) == '/') {
-            returnNode = CreateUnlinkedNode<XMLText>(_textPool);
+            returnNode = CreateUnlinkedNode( _textPool , pDummyXMLText );
             returnNode->_parseLineNum = startLine;
             p = start;	// Back it up, all the text counts.
             _parseCurLineNum = startLine;
         }
         else {
-            returnNode = CreateUnlinkedNode<XMLElement>(_elementPool);
+            returnNode = CreateUnlinkedNode( _elementPool , pDummyXMLElement );
             returnNode->_parseLineNum = _parseCurLineNum;
             p += elementHeaderLen;
         }
     }
     else {
-        returnNode = CreateUnlinkedNode<XMLText>( _textPool );
+        returnNode = CreateUnlinkedNode( _textPool , pDummyXMLText );
         returnNode->_parseLineNum = _parseCurLineNum; // Report line of first non-whitespace character
         p = start;	// Back it up, all the text counts.
         _parseCurLineNum = startLine;
@@ -2270,7 +2280,7 @@ void XMLDocument::DeepCopy(XMLDocument* target) const
 
 XMLElement* XMLDocument::NewElement( const char* name )
 {
-    XMLElement* ele = CreateUnlinkedNode<XMLElement>( _elementPool );
+    XMLElement* ele = CreateUnlinkedNode( _elementPool , pDummyXMLElement );
     ele->SetName( name );
     return ele;
 }
@@ -2278,7 +2288,7 @@ XMLElement* XMLDocument::NewElement( const char* name )
 
 XMLComment* XMLDocument::NewComment( const char* str )
 {
-    XMLComment* comment = CreateUnlinkedNode<XMLComment>( _commentPool );
+    XMLComment* comment = CreateUnlinkedNode( _commentPool , pDummyXMLComment );
     comment->SetValue( str );
     return comment;
 }
@@ -2286,7 +2296,7 @@ XMLComment* XMLDocument::NewComment( const char* str )
 
 XMLText* XMLDocument::NewText( const char* str )
 {
-    XMLText* text = CreateUnlinkedNode<XMLText>( _textPool );
+    XMLText* text = CreateUnlinkedNode( _textPool , pDummyXMLText );
     text->SetValue( str );
     return text;
 }
@@ -2294,7 +2304,7 @@ XMLText* XMLDocument::NewText( const char* str )
 
 XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 {
-    XMLDeclaration* dec = CreateUnlinkedNode<XMLDeclaration>( _commentPool );
+    XMLDeclaration* dec = CreateUnlinkedNode( _commentPool , pDummyXMLDeclaration );
     dec->SetValue( str ? str : "xml version=\"1.0\" encoding=\"UTF-8\"" );
     return dec;
 }
@@ -2302,7 +2312,7 @@ XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 
 XMLUnknown* XMLDocument::NewUnknown( const char* str )
 {
-    XMLUnknown* unk = CreateUnlinkedNode<XMLUnknown>( _commentPool );
+    XMLUnknown* unk = CreateUnlinkedNode( _commentPool , pDummyXMLUnknown );
     unk->SetValue( str );
     return unk;
 }
@@ -2372,22 +2382,22 @@ XMLError XMLDocument::LoadFile( FILE* fp )
 
     TIXML_FSEEK( fp, 0, SEEK_END );
 
-    unsigned long long filelength;
+    unsigned __int64 filelength;
     {
-        const long long fileLengthSigned = TIXML_FTELL( fp );
+        const __int64 fileLengthSigned = TIXML_FTELL( fp );
         TIXML_FSEEK( fp, 0, SEEK_SET );
         if ( fileLengthSigned == -1L ) {
             SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
             return _errorID;
         }
         TIXMLASSERT( fileLengthSigned >= 0 );
-        filelength = static_cast<unsigned long long>(fileLengthSigned);
+        filelength = static_cast<unsigned __int64>(fileLengthSigned);
     }
 
     const size_t maxSizeT = static_cast<size_t>(-1);
-    // We'll do the comparison as an unsigned long long, because that's guaranteed to be at
+    // We'll do the comparison as an unsigned __int64, because that's guaranteed to be at
     // least 8 bytes, even on a 32-bit platform.
-    if ( filelength >= static_cast<unsigned long long>(maxSizeT) ) {
+    if ( filelength >= static_cast<unsigned __int64>(maxSizeT) ) {
         // Cannot handle files which won't fit in buffer together with null terminator
         SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
         return _errorID;
@@ -2588,10 +2598,13 @@ XMLPrinter::XMLPrinter( FILE* file, bool compact, int depth, EscapeAposCharsInAt
     _compactMode( compact ),
     _buffer()
 {
+	{
     for( int i=0; i<ENTITY_RANGE; ++i ) {
         _entityFlag[i] = false;
         _restrictedEntityFlag[i] = false;
     }
+	}
+	{
     for( int i=0; i<NUM_ENTITIES; ++i ) {
         const char entityValue = entities[i].value;
         if ((aposInAttributes == ESCAPE_APOS_CHARS_IN_ATTRIBUTES) || (entityValue != SINGLE_QUOTE)) {
@@ -2600,6 +2613,7 @@ XMLPrinter::XMLPrinter( FILE* file, bool compact, int depth, EscapeAposCharsInAt
             _entityFlag[flagIndex] = true;
         }
     }
+	}
     _restrictedEntityFlag[static_cast<unsigned char>('&')] = true;
     _restrictedEntityFlag[static_cast<unsigned char>('<')] = true;
     _restrictedEntityFlag[static_cast<unsigned char>('>')] = true;	// not required, but consistency is nice
