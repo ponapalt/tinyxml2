@@ -59,6 +59,7 @@ distribution.
 #ifdef _MSC_VER
 #   pragma warning(push)
 #   pragma warning(disable: 4251)
+#define override 
 #endif
 
 #ifdef _MSC_VER
@@ -78,7 +79,7 @@ distribution.
 
 #if !defined(TIXMLASSERT)
 #if defined(TINYXML2_DEBUG)
-#   if defined(_MSC_VER)
+#   if defined(_MSC_VER) && (_MSC_VER >= 1400)
 #       // "(void)0," is for suppressing C4127 warning in "assert(false)", "assert(true)" and the like
 #       define TIXMLASSERT( x )           do { if ( !((void)0,(x))) { __debugbreak(); } } while(false)
 #   elif defined (ANDROID_NDK)
@@ -1978,12 +1979,27 @@ private:
 	private:
 		XMLDocument * _document;
 	};
+
+	friend class DepthTracker;
+
 	void PushDepth();
 	void PopDepth();
 
-    template<class NodeType, int PoolElementSize>
-    NodeType* CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool );
+	template<class NodeType>
+	NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
+	{
+		//TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
+		TIXMLASSERT( sizeof( NodeType ) == pool.ItemSize() );
+		NodeType* returnNode = new (pool.Alloc()) NodeType( this );
+		TIXMLASSERT( returnNode );
+		returnNode->_memPool = &pool;
+	
+		_unlinked.Push(returnNode);
+		return returnNode;
+	}
 };
+
+/*
 
 template<class NodeType, int PoolElementSize>
 inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool )
@@ -1997,6 +2013,8 @@ inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& poo
 	_unlinked.Push(returnNode);
     return returnNode;
 }
+
+*/
 
 /**
 	A XMLHandle is a class that wraps a node pointer with null checks; this is
