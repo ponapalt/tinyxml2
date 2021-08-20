@@ -48,6 +48,7 @@ distribution.
 #ifdef _MSC_VER
 #   pragma warning(push)
 #   pragma warning(disable: 4251)
+#define override 
 #endif
 
 #ifdef _MSC_VER
@@ -67,7 +68,7 @@ distribution.
 
 #if !defined(TIXMLASSERT)
 #if defined(TINYXML2_DEBUG)
-#   if defined(_MSC_VER)
+#   if defined(_MSC_VER) && (_MSC_VER >= 1400)
 #       // "(void)0," is for suppressing C4127 warning in "assert(false)", "assert(true)" and the like
 #       define TIXMLASSERT( x )           do { if ( !((void)0,(x))) { __debugbreak(); } } while(false)
 #   elif defined (ANDROID_NDK)
@@ -225,7 +226,7 @@ public:
     }
 
     T* PushArr( size_t count ) {
-        TIXMLASSERT( _size <= SIZE_MAX - count );
+        TIXMLASSERT( _size <= INT_MAX - count );
         EnsureCapacity( _size+count );
         T* ret = &_mem[_size];
         _size += count;
@@ -295,7 +296,7 @@ private:
     void EnsureCapacity( size_t cap ) {
         TIXMLASSERT( cap > 0 );
         if ( cap > _allocated ) {
-            TIXMLASSERT( cap <= SIZE_MAX / 2 / sizeof(T));
+            TIXMLASSERT( cap <= INT_MAX / 2 / sizeof(T));
             const size_t newAllocated = cap * 2;
             T* newMem = new T[newAllocated];
             TIXMLASSERT( newAllocated >= _size );
@@ -1973,14 +1974,29 @@ private:
 	private:
 		XMLDocument * _document;
 	};
+
+	friend class DepthTracker;
+
 	void PushDepth();
 	void PopDepth();
 
-    template<class NodeType, size_t PoolElementSize>
-    NodeType* CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool );
+	template<class NodeType>
+	NodeType* CreateUnlinkedNode( MemPoolT<sizeof(NodeType)>& pool , NodeType* dummy)
+	{
+		//TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
+		TIXMLASSERT( sizeof( NodeType ) == pool.ItemSize() );
+		NodeType* returnNode = new (pool.Alloc()) NodeType( this );
+		TIXMLASSERT( returnNode );
+		returnNode->_memPool = &pool;
+	
+		_unlinked.Push(returnNode);
+		return returnNode;
+	}
 };
 
-template<class NodeType, size_t PoolElementSize>
+/*
+
+template<class NodeType, int PoolElementSize>
 inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& pool )
 {
     TIXMLASSERT( sizeof( NodeType ) == PoolElementSize );
@@ -1992,6 +2008,8 @@ inline NodeType* XMLDocument::CreateUnlinkedNode( MemPoolT<PoolElementSize>& poo
 	_unlinked.Push(returnNode);
     return returnNode;
 }
+
+*/
 
 /**
 	A XMLHandle is a class that wraps a node pointer with null checks; this is
