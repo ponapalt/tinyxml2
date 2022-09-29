@@ -1151,7 +1151,7 @@ char* XMLNode::ParseDeep( char* p, StrPair* parentEndTag, int* curLineNumPtr )
                         FirstChild() &&
                         FirstChild()->ToDeclaration() &&
                         LastChild() &&
-                        LastChild()->ToDeclaration();
+                        ( LastChild()->ToDeclaration() || LastChild()->ToComment() ) ; //last entry should be declaration or comment.
                 }
                 else {
                     wellLocated = true;
