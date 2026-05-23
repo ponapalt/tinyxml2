@@ -834,7 +834,17 @@ XMLNode::XMLNode( XMLDocument* doc ) :
 
 XMLNode::~XMLNode()
 {
-    DeleteChildren();
+    // Fast path: this node is dying, so maintaining _firstChild/_lastChild and
+    // sibling _prev/_next links is unnecessary. Only _parent must be zeroed to
+    // satisfy the MarkInUse assertion inside DeleteNode.
+    XMLNode *currentChild = _firstChild;
+    while (currentChild != NULL) {
+        XMLNode *next = currentChild->_next;
+        currentChild->_parent = 0;
+        DeleteNode(currentChild);
+        currentChild = next;
+    }
+
     if ( _parent ) {
         _parent->Unlink( this );
     }
@@ -2348,11 +2358,10 @@ static FILE* callfopen( const char* filepath, const char* mode )
 }
 
 void XMLDocument::DeleteNode( XMLNode* node )	{   
-    TIXMLASSERT( node );
-    TIXMLASSERT(node->_document == this );
     if(node == 0) {
         return; // check for null pointer
     }
+    TIXMLASSERT(node->_document == this);
     if (node->_parent) {
         node->_parent->DeleteChild( node );
     }
